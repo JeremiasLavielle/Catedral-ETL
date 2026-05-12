@@ -25,6 +25,7 @@ public class GenerationService {
                 .collect(Collectors.joining("\n"));
 
         return TxtResultDTO.builder()
+                .periodo(document.getPeriodo())
                 .cabecera(cabecera)
                 .detalle(detalle)
                 .build();
