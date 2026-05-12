@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catedral ETL — Generar TXT</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --panel-2: #fafbfc;
+    --border: #e1e4e8;
+    --border-strong: #c9cdd4;
+    --text: #1f2328;
+    --text-soft: #424a53;
+    --muted: #6e7681;
+    --accent: #1f4788;
+    --accent-hover: #163566;
+    --accent-soft: #e8eef7;
+    --success: #1a7f37;
+    --success-soft: #e6f4ea;
+    --error: #b42318;
+    --error-soft: #fde8e6;
+    --shadow: 0 1px 2px rgba(31, 35, 40, 0.04), 0 1px 3px rgba(31, 35, 40, 0.06);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .container { width: 100%; max-width: 560px; }
+
+  header { text-align: center; margin-bottom: 28px; }
+
+  h1 {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+
+  .subtitle { color: var(--muted); font-size: 14px; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+  }
+
+  .dropzone {
+    background: var(--panel-2);
+    border: 2px dashed var(--border-strong);
+    border-radius: 8px;
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .dropzone.has-file {
+    border-style: solid;
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .icon {
+    width: 40px; height: 40px;
+    margin: 0 auto 14px;
+    color: var(--muted);
+  }
+  .dropzone.has-file .icon { color: var(--accent); }
+
+  .dz-title {
+    font-size: 15px; font-weight: 500;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+
+  .dz-hint { color: var(--muted); font-size: 13px; }
+
+  .file-info {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--muted);
+    word-break: break-all;
+  }
+
+  #file-input { display: none; }
+
+  .actions {
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+  }
+
+  button {
+    flex: 1;
+    padding: 10px 16px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    font-family: inherit;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+
+  .btn-primary:disabled {
+    background: var(--border-strong);
+    border-color: var(--border-strong);
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    background: var(--panel);
+    color: var(--text-soft);
+    border: 1px solid var(--border-strong);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--panel-2);
+    border-color: var(--muted);
+    color: var(--text);
+  }
+
+  .btn-secondary:disabled {
+    color: var(--muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .status {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    display: none;
+  }
+
+  .status.show { display: block; }
+  .status.info {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid #c7d4ec;
+  }
+  .status.success {
+    background: var(--success-soft);
+    color: var(--success);
+    border: 1px solid #b7dfc3;
+  }
+  .status.error {
+    background: var(--error-soft);
+    color: var(--error);
+    border: 1px solid #f3c2bd;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Carpeta de destino */
+  .folder-row {
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+  }
+
+  .folder-label { color: var(--muted); flex-shrink: 0; }
+
+  .folder-value {
+    flex: 1;
+    color: var(--text);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .folder-value.empty {
+    color: var(--muted);
+    font-style: italic;
+    font-family: inherit;
+    font-size: 13px;
+  }
+
+  .btn-folder {
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    font-size: 12px;
+    background: var(--panel);
+    color: var(--text-soft);
+    border: 1px solid var(--border-strong);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .btn-folder:hover:not(:disabled) {
+    background: var(--panel-2);
+    border-color: var(--muted);
+  }
+
+  .btn-folder:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .folder-note {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.4;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Catedral ETL</h1>
+      <p class="subtitle">Subí la factura PDF y descargá el TXT generado</p>
+    </header>
+
+    <div class="card">
+      <div id="dropzone" class="dropzone">
+        <svg class="icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+        </svg>
+        <div class="dz-title" id="dz-title">Arrastrá un PDF acá</div>
+        <div class="dz-hint" id="dz-hint">o hacé clic para seleccionar</div>
+        <div class="file-info" id="file-info"></div>
+        <input type="file" id="file-input" accept="application/pdf,.pdf">
+      </div>
+
+      <div class="folder-row">
+        <span class="folder-label">Destino:</span>
+        <span class="folder-value empty" id="folder-value">Carpeta de descargas por defecto</span>
+        <button type="button" class="btn-folder" id="btn-folder">Elegir carpeta</button>
+      </div>
+      <div class="folder-note" id="folder-note"></div>
+
+      <div class="actions">
+        <button id="btn-clear" class="btn-secondary" disabled>Limpiar</button>
+        <button id="btn-submit" class="btn-primary" disabled>Generar TXT</button>
+      </div>
+
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+<script>
+  const API_URL = '/api/generar';
+
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('file-input');
+  const fileInfo = document.getElementById('file-info');
+  const dzTitle = document.getElementById('dz-title');
+  const dzHint = document.getElementById('dz-hint');
+  const btnSubmit = document.getElementById('btn-submit');
+  const btnClear = document.getElementById('btn-clear');
+  const btnFolder = document.getElementById('btn-folder');
+  const folderValue = document.getElementById('folder-value');
+  const folderNote = document.getElementById('folder-note');
+  const status = document.getElementById('status');
+
+  let currentFile = null;
+  let dirHandle = null;
+
+  // ¿El navegador soporta File System Access API?
+  const supportsFSA = 'showDirectoryPicker' in window;
+
+  if (!supportsFSA) {
+    btnFolder.disabled = true;
+    btnFolder.title = 'No disponible en este navegador';
+    folderNote.textContent = 'Para elegir carpeta de destino usá Chrome o Edge. En este navegador el archivo se guarda en la carpeta de descargas configurada.';
+  } else {
+    folderNote.textContent = 'Si no elegís carpeta, el archivo va a la carpeta de descargas por defecto del navegador.';
+  }
+
+  function showStatus(message, type) {
+    status.className = `status show ${type}`;
+    status.innerHTML = message;
+  }
+
+  function hideStatus() {
+    status.className = 'status';
+    status.innerHTML = '';
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  function setFile(file) {
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      showStatus('El archivo debe ser un PDF.', 'error');
+      return;
+    }
+    currentFile = file;
+    dropzone.classList.add('has-file');
+    dzTitle.textContent = file.name;
+    dzHint.textContent = 'Listo para enviar';
+    fileInfo.textContent = formatSize(file.size);
+    btnSubmit.disabled = false;
+    btnClear.disabled = false;
+    hideStatus();
+  }
+
+  function clearFile() {
+    currentFile = null;
+    fileInput.value = '';
+    dropzone.classList.remove('has-file');
+    dzTitle.textContent = 'Arrastrá un PDF acá';
+    dzHint.textContent = 'o hacé clic para seleccionar';
+    fileInfo.textContent = '';
+    btnSubmit.disabled = true;
+    btnClear.disabled = true;
+    hideStatus();
+  }
+
+  dropzone.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) setFile(e.target.files[0]);
+  });
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('dragover');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('dragover');
+    });
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    const files = e.dataTransfer.files;
+    if (files.length > 0) setFile(files[0]);
+  });
+
+  // Evitar que el navegador abra el PDF si lo soltás fuera de la zona
+  ['dragover', 'drop'].forEach(eventName => {
+    document.body.addEventListener(eventName, (e) => e.preventDefault());
+  });
+
+  btnClear.addEventListener('click', clearFile);
+
+  // Selector de carpeta
+  btnFolder.addEventListener('click', async () => {
+    if (!supportsFSA) return;
+    try {
+      const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      dirHandle = handle;
+      folderValue.textContent = handle.name;
+      folderValue.classList.remove('empty');
+    } catch (err) {
+      // Usuario canceló el diálogo
+      if (err.name !== 'AbortError') console.error(err);
+    }
+  });
+
+  function getFilenameFromResponse(response, fallback) {
+    const disposition = response.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
+    if (match && match[1]) {
+      try { return decodeURIComponent(match[1]).trim(); }
+      catch (_) { return match[1].trim(); }
+    }
+    return fallback;
+  }
+
+  async function saveToFolder(blob, filename) {
+    const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  btnSubmit.addEventListener('click', async () => {
+    if (!currentFile) return;
+
+    btnSubmit.disabled = true;
+    btnClear.disabled = true;
+    btnFolder.disabled = true;
+    showStatus('<span class="spinner"></span>Procesando el PDF...', 'info');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', currentFile);
+
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        let errMsg = `Error ${response.status}`;
+        try {
+          const text = await response.text();
+          if (text) errMsg += `: ${text}`;
+        } catch (_) {}
+        throw new Error(errMsg);
+      }
+
+      const filename = getFilenameFromResponse(response, 'resultado.zip');
+      const blob = await response.blob();
+
+      if (dirHandle) {
+        try {
+          await saveToFolder(blob, filename);
+          showStatus(`Guardado en ${dirHandle.name}: ${filename}`, 'success');
+        } catch (err) {
+          console.error(err);
+          // Si falla el guardado (permisos revocados, etc.), caer a descarga normal
+          downloadBlob(blob, filename);
+          showStatus(`No se pudo guardar en la carpeta elegida. Descargado: ${filename}`, 'success');
+        }
+      } else {
+        downloadBlob(blob, filename);
+        showStatus(`Descargado: ${filename}`, 'success');
+      }
+    } catch (err) {
+      console.error(err);
+      let msg = err.message || 'Error desconocido';
+      if (msg === 'Failed to fetch') {
+        msg = 'No se pudo conectar con el servidor. Verificá que el backend esté en línea.';
+      }
+      showStatus(msg, 'error');
+    } finally {
+      btnSubmit.disabled = !currentFile;
+      btnClear.disabled = !currentFile;
+      btnFolder.disabled = !supportsFSA;
+    }
+  });
+</script>
+</body>
+</html>
