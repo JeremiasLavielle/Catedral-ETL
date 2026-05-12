@@ -26,7 +26,7 @@ public class ExportService {
 
         return ZipResultDTO.builder()
                 .zipBytes(baos.toByteArray())
-                .fileName("liquidaciones.zip")
+                .fileName("liquidaciones-"+txtResult.getPeriodo()+".zip")
                 .build();
     }
 }

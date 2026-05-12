@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TxtResultDTO {
+    private String periodo;
     private String cabecera;
     private String detalle;
 }
