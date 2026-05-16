@@ -39,7 +39,7 @@ public class CabeceraBuilder {
         String noGravado = "000000000000000";
         String netoStr = lpgCalculator.netoStr(neto);
         String ivaStr = lpgCalculator.ivaStr(iva);
-        String filler2 = StringUtils.repeat("0", 104) + "1";
+        String filler2 = StringUtils.repeat("0", 106) + "1";
         String moneda = "PES";
         String tipCambio = "0001000000";
         String filler3 = "1";
