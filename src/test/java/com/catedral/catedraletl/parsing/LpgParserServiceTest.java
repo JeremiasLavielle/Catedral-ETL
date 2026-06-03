@@ -15,7 +15,7 @@ public class LpgParserServiceTest {
     void setUp() throws IOException {
         service = new LpgParserService();
         pdfBytes = getClass()
-                .getResourceAsStream("/Liquidaciones HORIS 022026.pdf")
+                .getResourceAsStream("/liquid.pdf")
                 .readAllBytes();
     }
 

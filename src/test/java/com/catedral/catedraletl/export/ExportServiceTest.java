@@ -26,7 +26,7 @@ class ExportServiceTest {
         exportService = new ExportService();
 
         byte[] pdfBytes = getClass()
-                .getResourceAsStream("/Liquidaciones HORIS 022026.pdf")
+                .getResourceAsStream("/liquid.pdf")
                 .readAllBytes();
         LpgParserService parserService = new LpgParserService();
         document = parserService.parse(pdfBytes);

@@ -24,7 +24,11 @@ public class TxtFormatter {
         return StringUtils.leftPad(String.valueOf(valor), longitud, '0');
     }
 
-    public String formatText(String text,  int longitud) {
-        return  StringUtils.rightPad(text, longitud, ' ');
+    public String formatText(String text, int longitud) {
+        String safe = (text == null) ? "" : text;
+        if (safe.length() > longitud) {
+            safe = safe.substring(0, longitud);   // truncar al ancho del campo
+        }
+        return StringUtils.rightPad(safe, longitud, ' ');  // rellenar si es más corto
     }
 }

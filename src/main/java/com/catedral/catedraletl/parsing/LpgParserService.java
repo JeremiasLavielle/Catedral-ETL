@@ -131,12 +131,29 @@ public class LpgParserService {
     }
 
     private String extractRazonSocial(String block) {
-        Pattern razonSocialPattern = Pattern.compile("Razón Social: ([^\\n]+?) Razón Social:");
-        Matcher razonSocialMatcher = razonSocialPattern.matcher(block);
-        if (razonSocialMatcher.find()) {
-            return razonSocialMatcher.group(1);
+        Pattern pattern = Pattern.compile(
+                "Razón Social:\\s*(.*?)\\s*(?=Razón Social:)",
+                Pattern.DOTALL
+        );
+        Matcher matcher = pattern.matcher(block);
+
+        if (!matcher.find()) {
+            throw new IllegalStateException(
+                    "No se encontró Razón Social en el bloque: "
+                            + block.substring(0, Math.min(120, block.length())));
         }
-        return null;
+
+        String razonSocial = matcher.group(1)
+                .replaceAll("\\s+", " ")
+                .trim();
+
+        if (razonSocial.isEmpty()) {
+            throw new IllegalStateException(
+                    "Razón Social vacía en el bloque: "
+                            + block.substring(0, Math.min(120, block.length())));
+        }
+
+        return razonSocial;
     }
 
 
