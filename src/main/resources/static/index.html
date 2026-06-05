@@ -459,12 +459,20 @@
       });
 
       if (!response.ok) {
-        let errMsg = `Error ${response.status}`;
+        let titulo = `Error ${response.status}`;
+        let detalle = '';
         try {
-          const text = await response.text();
-          if (text) errMsg += `: ${text}`;
-        } catch (_) {}
-        throw new Error(errMsg);
+          const json = await response.json();
+          if (json.error) titulo = json.error;
+          if (json.detalle) detalle = json.detalle;
+        } catch (_) {
+          try {
+            const text = await response.text();
+            if (text) detalle = text;
+          } catch (_) {}
+        }
+        const msg = detalle ? `<strong>${titulo}</strong><br>${detalle}` : `<strong>${titulo}</strong>`;
+        throw new Error(msg);
       }
 
       const filename = getFilenameFromResponse(response, 'resultado.zip');
@@ -486,9 +494,9 @@
       }
     } catch (err) {
       console.error(err);
-      let msg = err.message || 'Error desconocido';
-      if (msg === 'Failed to fetch') {
-        msg = 'No se pudo conectar con el servidor. Verificá que el backend esté en línea.';
+      let msg = err.message || '<strong>Error desconocido</strong>';
+      if (err.message === 'Failed to fetch') {
+        msg = '<strong>No se pudo conectar con el servidor</strong><br>Verificá que el backend esté en línea.';
       }
       showStatus(msg, 'error');
     } finally {

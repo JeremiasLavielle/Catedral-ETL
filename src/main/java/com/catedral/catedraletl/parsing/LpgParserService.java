@@ -1,5 +1,6 @@
 package com.catedral.catedraletl.parsing;
 
+import com.catedral.catedraletl.exception.LpgParseException;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -50,10 +51,15 @@ public class LpgParserService {
     // ----- Blocks Parser -----
 
     public List<String> splitIntoBlocks(String rawText) {
-        return Arrays.stream(rawText.split("(?=\\d{2}/\\d{2}/\\d{4},)"))
+        List<String> blocks = Arrays.stream(rawText.split("(?=\\d{2}/\\d{2}/\\d{4},)"))
                 .filter(block -> block.contains("1 / 2") || block.contains("1 / 1"))
                 .filter(block -> !block.contains("Ajuste unificado"))
                 .toList();
+        if (blocks.isEmpty()) {
+            throw new LpgParseException(
+                    "El PDF no contiene liquidaciones válidas. Verificá que el archivo sea una Liquidación Primaria de Granos y no esté vacío o corrupto.");
+        }
+        return blocks;
     }
 
     // ----- Dto Generation -----
@@ -76,7 +82,8 @@ public class LpgParserService {
         if (dateMatcher.find()) {
             return dateMatcher.group(1);
         }
-        return null;
+        throw new LpgParseException(
+                "No se encontró el C.O.E. en la liquidación. Se esperaba un número de 12 dígitos con formato 'C.O.E.: XXXXXXXXXXXX'.");
     }
 
     private String extractDate(String block) {
@@ -85,7 +92,8 @@ public class LpgParserService {
         if (dateMatcher.find()) {
             return dateMatcher.group(1);
         }
-        return null;
+        throw new LpgParseException(
+                "No se encontró la fecha en la liquidación. Se esperaba formato 'dd/MM/yyyy'.");
     }
 
     private String extractCuitComprador(String block) {
@@ -94,16 +102,20 @@ public class LpgParserService {
         if (cuitCompradorMatcher.find()) {
             return cuitCompradorMatcher.group(1);
         }
-        return null;
+        throw new LpgParseException(
+                "No se encontró el CUIT del comprador en la liquidación. Se esperaba un número de 11 dígitos con formato 'C.U.I.T.: XXXXXXXXXXX'.");
     }
+
     private String extractCuitVendedor(String block) {
         Pattern cuitVendedorPattern = Pattern.compile("C\\.U\\.I\\.T\\.: (\\d{11})");
         Matcher cuitVendedorMatcher = cuitVendedorPattern.matcher(block);
         if (cuitVendedorMatcher.find()) {
-            cuitVendedorMatcher.find();
-            return cuitVendedorMatcher.group(1);
+            if (cuitVendedorMatcher.find()) {
+                return cuitVendedorMatcher.group(1);
+            }
         }
-        return null;
+        throw new LpgParseException(
+                "No se encontró el CUIT del vendedor en la liquidación. El documento debe contener dos CUITs: el del comprador y el del vendedor.");
     }
 
     private BigDecimal extractSubtotal(String block) {
@@ -111,9 +123,15 @@ public class LpgParserService {
         Matcher subtotalMatcher = subtotalPattern.matcher(block);
         if (subtotalMatcher.find()) {
             String subtotal = subtotalMatcher.group(1).replace(",", "");
-            return new BigDecimal(subtotal);
+            try {
+                return new BigDecimal(subtotal);
+            } catch (NumberFormatException e) {
+                throw new LpgParseException(
+                        "El subtotal bruto encontrado en la liquidación tiene un formato inválido: '" + subtotal + "'. Se esperaba un número decimal.", e);
+            }
         }
-        return null;
+        throw new LpgParseException(
+                "No se encontró el subtotal bruto en la liquidación. Se esperaba una línea con formato 'Kg $[precio] $[subtotal]'.");
     }
 
     private List<DeduccionDTO> extractDeducciones(String block) {
@@ -138,9 +156,8 @@ public class LpgParserService {
         Matcher matcher = pattern.matcher(block);
 
         if (!matcher.find()) {
-            throw new IllegalStateException(
-                    "No se encontró Razón Social en el bloque: "
-                            + block.substring(0, Math.min(120, block.length())));
+            throw new LpgParseException(
+                    "No se encontró la Razón Social del comprador en la liquidación. El documento debe contener al menos dos ocurrencias de 'Razón Social:'.");
         }
 
         String razonSocial = matcher.group(1)
@@ -148,9 +165,8 @@ public class LpgParserService {
                 .trim();
 
         if (razonSocial.isEmpty()) {
-            throw new IllegalStateException(
-                    "Razón Social vacía en el bloque: "
-                            + block.substring(0, Math.min(120, block.length())));
+            throw new LpgParseException(
+                    "La Razón Social del comprador está vacía en la liquidación. Verificá que el PDF no esté cortado o mal generado.");
         }
 
         return razonSocial;

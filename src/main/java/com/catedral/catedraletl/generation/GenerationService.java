@@ -1,5 +1,6 @@
 package com.catedral.catedraletl.generation;
 
+import com.catedral.catedraletl.exception.GenerationException;
 import com.catedral.catedraletl.parsing.LpgDocumentDTO;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,11 @@ public class GenerationService {
     }
 
     public TxtResultDTO generate(LpgDocumentDTO document) {
+        if (document.getLiquidaciones() == null || document.getLiquidaciones().isEmpty()) {
+            throw new GenerationException(
+                    "No hay liquidaciones para generar. El documento parseado llegó vacío.");
+        }
+
         String cabecera = document.getLiquidaciones().stream()
                 .map(cabeceraBuilder::buildType1)
                 .collect(Collectors.joining("\n")) + "\n" + cabeceraBuilder.buildType2(document);
